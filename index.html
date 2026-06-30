@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Excel Travel & Tours — Fuel Tracker</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <div class="nav-logo">ET</div>
+      <div>
+        <span class="nav-title">Excel Travel & Tours</span>
+        <span class="nav-sub">Fuel Management System</span>
+      </div>
+    </div>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link active">My Entries</a>
+      <span class="nav-user" id="navUser" style="font-size:13px;color:#9CA3AF;padding:7px 10px;"></span>
+      <button onclick="Auth.logout('login.html')" class="nav-link" style="background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:13px;font-weight:500;padding:7px 14px;border-radius:6px;font-family:inherit;" onmouseover="this.style.background='rgba(255,255,255,0.08)';this.style.color='white'" onmouseout="this.style.background='none';this.style.color='#9CA3AF'">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="agent-main">
+
+    <!-- SUCCESS BANNER -->
+    <div id="successBanner" class="success-banner hidden">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>Fuel entry submitted to HQ successfully.</span>
+    </div>
+
+    <div class="page-header">
+      <h1 class="page-title">Daily Fuel Intake</h1>
+      <p class="page-sub">Record each fuel dispensing for your station</p>
+    </div>
+
+    <!-- STATION SELECTOR -->
+    <div class="station-toggle">
+      <button class="station-btn active kigali" id="btnKigali" onclick="setStation('merez')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Merez Station
+      </button>
+      <button class="station-btn musanze" id="btnMusanze" onclick="setStation('rubis')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Rubis Station
+      </button>
+    </div>
+
+    <form id="fuelForm" class="fuel-form" onsubmit="submitEntry(event)">
+
+      <!-- BUS DETAILS -->
+      <div class="form-card">
+        <div class="form-card-header">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          Bus Details
+        </div>
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="busPlate">Plate number <span class="req">*</span></label>
+            <input type="text" id="busPlate" placeholder="e.g. RAB 123A" required autocomplete="off" />
+          </div>
+          <div class="form-field">
+            <label for="driverName">Driver name <span class="req">*</span></label>
+            <input type="text" id="driverName" placeholder="Full name" required />
+          </div>
+        </div>
+      </div>
+
+      <!-- FUEL DETAILS -->
+      <div class="form-card">
+        <div class="form-card-header">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22V8l9-6 9 6v14H3z"/><rect x="9" y="22" width="6" height="0"/><path d="M9 22V12h6v10"/></svg>
+          Fuel Intake
+        </div>
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="litres">Litres dispensed <span class="req">*</span></label>
+            <input type="number" id="litres" placeholder="0.00" min="0.1" step="0.1" required oninput="calcTotal()" />
+          </div>
+          <div class="form-field">
+            <label for="pricePerLitre">Price per litre (RWF) <span class="req">*</span></label>
+            <input type="number" id="pricePerLitre" placeholder="0" min="0" required oninput="calcTotal()" />
+          </div>
+          <div class="form-field">
+            <label for="paymentStatus">Payment status <span class="req">*</span></label>
+            <select id="paymentStatus" required>
+              <option value="">Select status</option>
+              <option value="Paid">Paid</option>
+              <option value="Pending">Pending</option>
+              <option value="Credit">Credit</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="entryTime">Date & time <span class="req">*</span></label>
+            <input type="datetime-local" id="entryTime" required />
+          </div>
+        </div>
+        <div class="total-display" id="totalDisplay">
+          <span class="total-label">Total amount</span>
+          <span class="total-value" id="totalValue">RWF 0</span>
+        </div>
+      </div>
+
+      <!-- NOTES -->
+      <div class="form-card">
+        <div class="form-card-header">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Notes
+        </div>
+        <div class="form-field" style="margin:0">
+          <label for="notes">Additional notes (optional)</label>
+          <input type="text" id="notes" placeholder="e.g. Top-up before long run, engine check needed..." />
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Submit to HQ
+      </button>
+    </form>
+
+    <!-- MY ENTRIES LOG -->
+    <div class="table-card" style="margin-top:28px;">
+      <div class="table-header">
+        <span class="chart-title">My submissions today</span>
+        <span id="myEntryCount" style="font-size:13px;color:#6B7280;"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Station</th>
+              <th>Plate</th>
+              <th>Driver</th>
+              <th>Litres</th>
+              <th>Total (RWF)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="myLogBody">
+            <tr class="empty-row"><td colspan="7">No entries yet today.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/agent.js"></script>
+</body>
+</html>

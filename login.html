@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In — Excel Travel & Tours</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue: #2563EB; --blue-light: #EFF6FF; --blue-dark: #1D4ED8;
+      --green: #16A34A; --green-light: #F0FDF4;
+      --red: #DC2626; --red-light: #FEF2F2;
+      --amber: #D97706; --amber-light: #FFFBEB;
+      --gray-50: #F9FAFB; --gray-100: #F3F4F6; --gray-200: #E5E7EB;
+      --gray-300: #D1D5DB; --gray-400: #9CA3AF; --gray-500: #6B7280;
+      --gray-700: #374151; --gray-800: #1F2937; --gray-900: #111827;
+    }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--gray-50);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .brand-logo {
+      width: 44px; height: 44px;
+      background: var(--blue);
+      border-radius: 10px;
+      color: white;
+      font-size: 15px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .brand-name { font-size: 16px; font-weight: 700; color: var(--gray-900); }
+    .brand-sub  { font-size: 12px; color: var(--gray-500); }
+
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+    }
+
+    .card-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 6px;
+    }
+    .card-sub {
+      font-size: 14px;
+      color: var(--gray-500);
+      margin-bottom: 24px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; }
+    .field label { font-size: 13px; font-weight: 500; color: var(--gray-700); }
+    .field input {
+      padding: 10px 12px;
+      border: 1px solid var(--gray-300);
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      color: var(--gray-900);
+      background: white;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .field input:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+    .field input.error { border-color: var(--red); }
+
+    .field-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .field-row label { font-size: 13px; font-weight: 500; color: var(--gray-700); }
+    .forgot-link {
+      font-size: 12px;
+      color: var(--blue);
+      text-decoration: none;
+      cursor: pointer;
+      font-weight: 500;
+      background: none; border: none; font-family: inherit;
+    }
+    .forgot-link:hover { text-decoration: underline; }
+
+    .btn {
+      width: 100%;
+      padding: 11px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s, transform 0.1s;
+      margin-top: 4px;
+    }
+    .btn-primary { background: var(--blue); color: white; }
+    .btn-primary:hover { background: var(--blue-dark); }
+    .btn-primary:active { transform: scale(0.99); }
+    .btn-secondary {
+      background: none;
+      border: 1px solid var(--gray-300);
+      color: var(--gray-700);
+      margin-top: 10px;
+    }
+    .btn-secondary:hover { background: var(--gray-50); }
+
+    .divider {
+      text-align: center;
+      font-size: 13px;
+      color: var(--gray-400);
+      margin: 20px 0;
+      position: relative;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: calc(50% - 24px);
+      height: 1px;
+      background: var(--gray-200);
+    }
+    .divider::before { left: 0; }
+    .divider::after  { right: 0; }
+
+    .register-prompt {
+      text-align: center;
+      font-size: 13px;
+      color: var(--gray-500);
+      margin-top: 20px;
+    }
+    .register-prompt a {
+      color: var(--blue);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .register-prompt a:hover { text-decoration: underline; }
+
+    .alert {
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .alert.show { display: flex; align-items: center; gap: 8px; }
+    .alert-error   { background: var(--red-light); color: var(--red); border: 1px solid #FECACA; }
+    .alert-success { background: var(--green-light); color: var(--green); border: 1px solid #BBF7D0; }
+    .alert-info    { background: var(--amber-light); color: var(--amber); border: 1px solid #FDE68A; }
+
+    /* Panels */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* Reset token display */
+    .token-box {
+      background: var(--gray-100);
+      border: 1px dashed var(--gray-300);
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+      margin: 16px 0;
+    }
+    .token-box .token-label { font-size: 12px; color: var(--gray-500); margin-bottom: 6px; }
+    .token-box .token-value {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      color: var(--gray-900);
+      font-variant-numeric: tabular-nums;
+    }
+    .token-box .token-hint { font-size: 11px; color: var(--gray-400); margin-top: 6px; }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--gray-500);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 0;
+      margin-bottom: 20px;
+    }
+    .back-btn:hover { color: var(--gray-800); }
+
+    @media (max-width: 480px) {
+      .card { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="brand">
+    <div class="brand-logo">ET</div>
+    <div>
+      <div class="brand-name">Excel Travel & Tours</div>
+      <div class="brand-sub">Fuel Management System</div>
+    </div>
+  </div>
+
+  <div class="card">
+
+    <!-- ── PANEL: LOGIN ───────────────────────────────────────────────────── -->
+    <div class="panel active" id="panelLogin">
+      <div class="card-title">Welcome back</div>
+      <div class="card-sub">Sign in to your account to continue</div>
+
+      <div class="alert alert-error" id="loginError">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span id="loginErrorMsg"></span>
+      </div>
+
+      <div class="field">
+        <label for="loginEmail">Email address</label>
+        <input type="email" id="loginEmail" placeholder="you@exceltravel.rw" autocomplete="email" />
+      </div>
+
+      <div class="field">
+        <div class="field-row">
+          <label for="loginPassword">Password</label>
+          <button class="forgot-link" onclick="showPanel('panelForgot')">Forgot password?</button>
+        </div>
+        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+
+      <button class="btn btn-primary" onclick="handleLogin()">Sign in</button>
+
+      <div class="divider">or</div>
+
+      <div class="register-prompt">
+        Don't have an account? <a href="register.html">Create one</a>
+      </div>
+    </div>
+
+    <!-- ── PANEL: FORGOT PASSWORD ─────────────────────────────────────────── -->
+    <div class="panel" id="panelForgot">
+      <button class="back-btn" onclick="showPanel('panelLogin')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Back to sign in
+      </button>
+      <div class="card-title">Reset your password</div>
+      <div class="card-sub">Enter your email and we'll generate a reset code</div>
+
+      <div class="alert alert-error"   id="forgotError"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span id="forgotErrorMsg"></span></div>
+
+      <div class="field">
+        <label for="forgotEmail">Email address</label>
+        <input type="email" id="forgotEmail" placeholder="you@exceltravel.rw" />
+      </div>
+
+      <button class="btn btn-primary" onclick="handleForgot()">Send reset code</button>
+    </div>
+
+    <!-- ── PANEL: SHOW TOKEN ──────────────────────────────────────────────── -->
+    <div class="panel" id="panelToken">
+      <div class="card-title">Your reset code</div>
+      <div class="card-sub">Use this code to set a new password. It expires in 15 minutes.</div>
+
+      <div class="token-box">
+        <div class="token-label">Reset code</div>
+        <div class="token-value" id="resetTokenDisplay">——</div>
+        <div class="token-hint">Write this down before continuing</div>
+      </div>
+
+      <button class="btn btn-primary" onclick="showPanel('panelReset')">Continue to reset</button>
+    </div>
+
+    <!-- ── PANEL: NEW PASSWORD ────────────────────────────────────────────── -->
+    <div class="panel" id="panelReset">
+      <div class="card-title">Set new password</div>
+      <div class="card-sub">Enter your reset code and choose a new password</div>
+
+      <div class="alert alert-error" id="resetError"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span id="resetErrorMsg"></span></div>
+      <div class="alert alert-success" id="resetSuccess"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span>Password updated! Redirecting to sign in...</span></div>
+
+      <div class="field">
+        <label for="resetToken">Reset code</label>
+        <input type="text" id="resetToken" placeholder="e.g. AB12CD34" style="letter-spacing:2px;text-transform:uppercase" maxlength="8" />
+      </div>
+      <div class="field">
+        <label for="resetNewPw">New password</label>
+        <input type="password" id="resetNewPw" placeholder="At least 8 characters" />
+      </div>
+      <div class="field">
+        <label for="resetConfirmPw">Confirm password</label>
+        <input type="password" id="resetConfirmPw" placeholder="Repeat new password" />
+      </div>
+
+      <button class="btn btn-primary" onclick="handleReset()">Update password</button>
+      <button class="btn btn-secondary" onclick="showPanel('panelLogin')">Cancel</button>
+    </div>
+
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    // Redirect if already logged in
+    const sess = Auth.getSession();
+    if (sess && Auth.getToken()) {
+      window.location.href = sess.role === 'admin' ? 'pages/admin-dashboard.html' : 'index.html';
+    }
+
+    function showPanel(id) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function setAlert(id, msgId, msg) {
+      document.getElementById(msgId).textContent = msg;
+      document.getElementById(id).classList.add('show');
+    }
+    function clearAlert(id) { document.getElementById(id).classList.remove('show'); }
+
+    async function handleLogin() {
+      clearAlert('loginError');
+      const email    = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      if (!email || !password) { setAlert('loginError','loginErrorMsg','Please fill in all fields.'); return; }
+
+      const submitBtn = document.querySelector('#panelLogin .btn-primary');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Signing in...';
+
+      const result = await Auth.login(email, password);
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Sign in';
+
+      if (!result.ok) { setAlert('loginError','loginErrorMsg', result.error); return; }
+
+      window.location.href = result.user.role === 'admin'
+        ? 'pages/admin-dashboard.html'
+        : 'index.html';
+    }
+
+    async function handleForgot() {
+      clearAlert('forgotError');
+      const email = document.getElementById('forgotEmail').value.trim();
+      if (!email) { setAlert('forgotError','forgotErrorMsg','Enter your email address.'); return; }
+
+      const result = await Auth.generateResetToken(email);
+      if (!result.ok) { setAlert('forgotError','forgotErrorMsg', result.error); return; }
+
+      document.getElementById('resetTokenDisplay').textContent = result.token;
+      showPanel('panelToken');
+    }
+
+    async function handleReset() {
+      clearAlert('resetError');
+      clearAlert('resetSuccess');
+      const token   = document.getElementById('resetToken').value.trim().toUpperCase();
+      const newPw   = document.getElementById('resetNewPw').value;
+      const confirm = document.getElementById('resetConfirmPw').value;
+
+      if (!token || !newPw || !confirm) { setAlert('resetError','resetErrorMsg','All fields are required.'); return; }
+      if (newPw.length < 8)             { setAlert('resetError','resetErrorMsg','Password must be at least 8 characters.'); return; }
+      if (newPw !== confirm)            { setAlert('resetError','resetErrorMsg','Passwords do not match.'); return; }
+
+      const result = await Auth.resetPassword(token, newPw);
+      if (!result.ok) { setAlert('resetError','resetErrorMsg', result.error); return; }
+
+      document.getElementById('resetSuccess').classList.add('show');
+      setTimeout(() => showPanel('panelLogin'), 2000);
+    }
+
+    // Enter key support
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      const active = document.querySelector('.panel.active');
+      if (!active) return;
+      if (active.id === 'panelLogin')  handleLogin();
+      if (active.id === 'panelForgot') handleForgot();
+      if (active.id === 'panelReset')  handleReset();
+    });
+  </script>
+</body>
+</html>

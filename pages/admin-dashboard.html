@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — Excel Travel & Tours</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* Admin-specific additions */
+    .admin-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(220,38,38,0.15); color: #FCA5A5;
+      font-size: 11px; font-weight: 600; padding: 3px 8px;
+      border-radius: 99px; letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .agent-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .agent-pill {
+      padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 500;
+      border: 1px solid #E5E7EB; background: none; cursor: pointer; color: #6B7280;
+      font-family: inherit; transition: all 0.12s;
+    }
+    .agent-pill:hover { background: #F3F4F6; color: #374151; }
+    .agent-pill.active { background: #111827; color: white; border-color: #111827; }
+
+    .section-title {
+      font-size: 11px; font-weight: 600; color: #9CA3AF;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      margin-bottom: 10px;
+    }
+    .agent-summary-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px; margin-bottom: 20px;
+    }
+    .agent-card {
+      background: white; border: 1px solid #E5E7EB;
+      border-radius: 10px; padding: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .agent-card-name { font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 2px; }
+    .agent-card-email { font-size: 11px; color: #9CA3AF; margin-bottom: 10px; }
+    .agent-card-stat { display: flex; justify-content: space-between; font-size: 12px; color: #6B7280; margin-top: 4px; }
+    .agent-card-stat strong { color: #111827; }
+
+    .delete-btn {
+      background: none; border: none; cursor: pointer; color: #9CA3AF;
+      padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: inherit;
+      transition: color 0.12s;
+    }
+    .delete-btn:hover { color: #DC2626; }
+
+    .badge-merez  { background: #EFF6FF; color: #2563EB; }
+    .badge-rubis  { background: #F0FDF4; color: #16A34A; }
+    /* Smaller "litres per day" chart card */
+    .chart-card.chart-card-compact {
+      padding: 14px 16px;
+    }
+    .chart-card-compact .chart-card-header { margin-bottom: 10px; }
+    .chart-card-compact .chart-title { font-size: 13px; }
+    .chart-card-compact canvas { max-height: 110px !important; }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <div class="nav-logo">ET</div>
+      <div>
+        <span class="nav-title">Excel Travel & Tours</span>
+        <span class="nav-sub">Fuel Management System</span>
+      </div>
+    </div>
+    <div class="nav-links">
+      <a href="admin-dashboard.html" class="nav-link active">Dashboard</a>
+      <a href="fleet.html" class="nav-link">Fleet</a>
+      <span class="admin-badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Admin
+      </span>
+      <button onclick="Auth.logout('../login.html')" class="nav-link" style="background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:13px;font-weight:500;padding:7px 14px;border-radius:6px;font-family:inherit;" onmouseover="this.style.background='rgba(255,255,255,0.08)';this.style.color='white'" onmouseout="this.style.background='none';this.style.color='#9CA3AF'">Sign out</button>
+    </div>
+  </nav>
+
+  <main class="hq-main">
+
+    <!-- PAGE HEADER -->
+    <div class="hq-page-header">
+      <div>
+        <h1 class="page-title">Admin Dashboard</h1>
+        <p class="page-sub" id="lastUpdated">All agents · All stations · Loading...</p>
+      </div>
+      <button class="btn-export" onclick="exportCSV()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export CSV
+      </button>
+    </div>
+
+    <!-- KPI CARDS -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon-blue">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22V8l9-6 9 6v14H3z"/></svg>
+        </div>
+        <div class="kpi-label">Total litres</div>
+        <div class="kpi-value" id="kpiTotal">0 L</div>
+        <div class="kpi-sub" id="kpiEntries">0 entries</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon-blue">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div class="kpi-label">Merez station</div>
+        <div class="kpi-value" id="kpiMerez">0 L</div>
+        <div class="kpi-sub kpi-sub-blue">Station A</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon-green">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div class="kpi-label">Rubis station</div>
+        <div class="kpi-value" id="kpiRubis">0 L</div>
+        <div class="kpi-sub kpi-sub-green">Station B</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon-amber">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div class="kpi-label">Total cost</div>
+        <div class="kpi-value" id="kpiCost">RWF 0</div>
+        <div class="kpi-sub" id="kpiAvgPrice">avg — /L</div>
+      </div>
+    </div>
+
+    <!-- CHART + BREAKDOWN -->
+    <div class="chart-row">
+      <div class="chart-card chart-card-compact">
+        <div class="chart-card-header">
+          <span class="chart-title">Litres dispensed per day</span>
+          <div class="chart-legend">
+            <span class="legend-dot blue"></span> Merez
+            <span class="legend-dot green" style="margin-left:12px"></span> Rubis
+          </div>
+        </div>
+        <canvas id="fuelChart" height="90"></canvas>
+      </div>
+      <div class="breakdown-card">
+        <div class="chart-card-header">
+          <span class="chart-title">Station breakdown</span>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-label"><span class="legend-dot blue"></span> Merez</div>
+          <div class="breakdown-bar-wrap"><div class="breakdown-bar blue" id="barMerez" style="width:0%"></div></div>
+          <span class="breakdown-pct" id="pctMerez">0%</span>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-label"><span class="legend-dot green"></span> Rubis</div>
+          <div class="breakdown-bar-wrap"><div class="breakdown-bar green" id="barRubis" style="width:0%"></div></div>
+          <span class="breakdown-pct" id="pctRubis">0%</span>
+        </div>
+        <div class="breakdown-divider"></div>
+        <div class="breakdown-stat">
+          <span>Unpaid / Credit entries</span>
+          <strong id="unpaidCount" class="stat-red">0</strong>
+        </div>
+        <div class="breakdown-stat">
+          <span>Active agents</span>
+          <strong id="agentCount">0</strong>
+        </div>
+        <div class="breakdown-stat">
+          <span>Buses fuelled</span>
+          <strong id="busCount">0</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- AGENT SUMMARIES -->
+    <div style="margin-bottom:20px;">
+      <div class="section-title">Per-agent summary</div>
+      <div class="agent-summary-grid" id="agentSummaryGrid">
+        <p style="color:#9CA3AF;font-size:13px;">No agent submissions yet.</p>
+      </div>
+    </div>
+
+    <!-- LOG TABLE -->
+    <div class="table-card">
+      <div class="table-header">
+        <span class="chart-title">Full fuel log</span>
+        <div class="filter-row">
+          <button class="filter-btn active" id="f-all"    onclick="setFilter('all')">All</button>
+          <button class="filter-btn" id="f-merez"         onclick="setFilter('merez')">Merez</button>
+          <button class="filter-btn" id="f-rubis"         onclick="setFilter('rubis')">Rubis</button>
+          <button class="filter-btn" id="f-unpaid"        onclick="setFilter('unpaid')">Unpaid</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Agent</th>
+              <th>Station</th>
+              <th>Plate</th>
+              <th>Driver</th>
+              <th>Litres</th>
+              <th>Price/L</th>
+              <th>Total (RWF)</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="logBody">
+            <tr class="empty-row">
+              <td colspan="10">No entries yet — agents submit fuel intake from their stations.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/store.js"></script>
+  <script src="../js/admin-dashboard.js"></script>
+</body>
+</html>
