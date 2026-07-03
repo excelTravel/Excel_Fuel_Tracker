@@ -1,71 +1,71 @@
 /**
- * db.js — SQLite database connection and schema setup.
+ * db.js — tiny JSON-file "database".
  *
- * On Render, set DB_PATH to a path on a persistent disk, e.g. /data/fuel.db
- * (mount a Render Disk at /data so the SQLite file survives deploys/restarts).
- * Locally it defaults to ./data/fuel.db
+ * This is intentionally dependency-free (no native modules, no external DB
+ * server) so the project runs anywhere Node.js runs. Everything is read
+ * from / written to data/db.json as a single JSON document.
+ *
+ * Swap this module out for a real database (Postgres, MySQL, Mongo, etc.)
+ * later without touching the routes — they only ever call readDb()/writeDb().
  */
 
-const path = require('path');
 const fs = require('fs');
-const Database = require('better-sqlite3');
+const path = require('path');
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'fuel.db');
+const DB_PATH = path.join(__dirname, '..', 'data', 'db.json');
 
-// Make sure the directory exists
-const dir = path.dirname(DB_PATH);
-if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+function emptyDb() {
+  return { users: [], entries: [], fleet: [] };
+}
 
-const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+function initDb() {
+  const dir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(DB_PATH)) {
+    writeDb(emptyDb());
+  }
+}
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id            TEXT PRIMARY KEY,
-    name          TEXT NOT NULL,
-    email         TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    role          TEXT NOT NULL CHECK (role IN ('agent','admin')) DEFAULT 'agent',
-    created_at    TEXT NOT NULL DEFAULT (datetime('now'))
-  );
+function readDb() {
+  try {
+    const raw = fs.readFileSync(DB_PATH, 'utf-8');
+    const data = JSON.parse(raw);
+    return {
+      users: data.users || [],
+      entries: data.entries || [],
+      fleet: data.fleet || [],
+    };
+  } catch {
+    return emptyDb();
+  }
+}
 
-  CREATE TABLE IF NOT EXISTS reset_tokens (
-    token      TEXT PRIMARY KEY,
-    email      TEXT NOT NULL,
-    expires_at INTEGER NOT NULL
-  );
+function writeDb(data) {
+  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+}
 
-  CREATE TABLE IF NOT EXISTS fuel_entries (
-    id              TEXT PRIMARY KEY,
-    user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    agent_name      TEXT,
-    agent_email     TEXT,
-    station         TEXT NOT NULL CHECK (station IN ('merez','rubis')),
-    bus_plate       TEXT NOT NULL,
-    driver_name     TEXT,
-    odometer        INTEGER,
-    litres          REAL NOT NULL,
-    price_per_litre REAL,
-    cost            REAL,
-    payment_status  TEXT NOT NULL CHECK (payment_status IN ('Paid','Pending','Credit')),
-    entry_time      TEXT NOT NULL,
-    notes           TEXT,
-    submitted_at    TEXT NOT NULL DEFAULT (datetime('now'))
-  );
+/** Creates the default admin account on first run, if it doesn't exist yet. */
+function seedAdmin() {
+  const db = readDb();
+  const adminEmail = (process.env.ADMIN_EMAIL || 'admin@exceltravel.rw').trim().toLowerCase();
+  const exists = db.users.find(u => u.email.toLowerCase() === adminEmail);
+  if (exists) return;
 
-  CREATE TABLE IF NOT EXISTS fleet_buses (
-    id          TEXT PRIMARY KEY,
-    plate       TEXT NOT NULL UNIQUE,
-    driver_name TEXT,
-    model       TEXT,
-    route       TEXT,
-    added_at    TEXT NOT NULL DEFAULT (datetime('now'))
-  );
+  const passwordHash = bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'ChangeMe123!', 10);
+  db.users.push({
+    id: crypto.randomUUID(),
+    name: process.env.ADMIN_NAME || 'HQ Admin',
+    email: adminEmail,
+    passwordHash,
+    role: 'admin',
+    resetToken: null,
+    resetTokenExpires: null,
+    createdAt: new Date().toISOString(),
+  });
+  writeDb(db);
+  console.log(`Seeded default admin account: ${adminEmail}`);
+}
 
-  CREATE INDEX IF NOT EXISTS idx_fuel_entries_user_id    ON fuel_entries(user_id);
-  CREATE INDEX IF NOT EXISTS idx_fuel_entries_entry_time ON fuel_entries(entry_time);
-  CREATE INDEX IF NOT EXISTS idx_fuel_entries_bus_plate  ON fuel_entries(bus_plate);
-`);
-
-module.exports = db;
+module.exports = { initDb, readDb, writeDb, seedAdmin, DB_PATH };

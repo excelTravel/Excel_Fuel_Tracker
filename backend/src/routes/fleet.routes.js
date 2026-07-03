@@ -1,68 +1,58 @@
-/**
- * routes/fleet.routes.js — master list of company buses (admin only)
- */
-
 const express = require('express');
 const crypto = require('crypto');
-const db = require('../db');
-const { requireAdmin } = require('../middleware');
+const { readDb, writeDb } = require('../db');
+const { authRequired, adminRequired } = require('../middleware/auth');
 
 const router = express.Router();
 
-function rowToBus(row) {
-  return {
-    id: row.id,
-    plate: row.plate,
-    driverName: row.driver_name,
-    model: row.model,
-    route: row.route,
-    addedAt: row.added_at,
-  };
-}
+// Every fleet route is admin-only (fleet.html calls Auth.requireAdmin()).
+router.use(authRequired, adminRequired);
 
-// ── GET /api/fleet ──────────────────────────────────────────────────────────
-router.get('/', requireAdmin, (req, res) => {
-  const rows = db.prepare('SELECT * FROM fleet_buses ORDER BY added_at DESC').all();
-  res.json({ ok: true, buses: rows.map(rowToBus) });
+/** GET /api/fleet */
+router.get('/', (req, res) => {
+  const db = readDb();
+  res.json({ ok: true, buses: db.fleet });
 });
 
-// ── POST /api/fleet ─────────────────────────────────────────────────────────
-router.post('/', requireAdmin, (req, res) => {
+/** POST /api/fleet */
+router.post('/', (req, res) => {
   const { plate, driverName, model, route } = req.body || {};
-  const plateClean = (plate || '').trim().toUpperCase();
 
-  if (!plateClean) {
+  if (!plate || !String(plate).trim()) {
     return res.status(400).json({ ok: false, error: 'Plate number is required.' });
   }
 
-  const existing = db.prepare('SELECT id FROM fleet_buses WHERE plate = ?').get(plateClean);
-  if (existing) {
-    return res.status(409).json({ ok: false, error: 'A bus with this plate is already in the fleet.' });
+  const db = readDb();
+  const normPlate = String(plate).trim().toUpperCase();
+
+  if (db.fleet.some(b => b.plate === normPlate)) {
+    return res.status(409).json({ ok: false, error: 'A bus with this plate number already exists.' });
   }
 
   const bus = {
-    id: 'bus_' + crypto.randomUUID(),
-    plate: plateClean,
-    driver_name: (driverName || '').trim() || null,
-    model: (model || '').trim() || null,
-    route: (route || '').trim() || null,
+    id: crypto.randomUUID(),
+    plate: normPlate,
+    driverName: driverName ? String(driverName).trim() : '',
+    model: model ? String(model).trim() : '',
+    route: route ? String(route).trim() : '',
+    createdAt: new Date().toISOString(),
   };
 
-  db.prepare(`
-    INSERT INTO fleet_buses (id, plate, driver_name, model, route)
-    VALUES (@id, @plate, @driver_name, @model, @route)
-  `).run(bus);
+  db.fleet.push(bus);
+  writeDb(db);
 
-  const row = db.prepare('SELECT * FROM fleet_buses WHERE id = ?').get(bus.id);
-  res.status(201).json({ ok: true, bus: rowToBus(row) });
+  res.status(201).json({ ok: true, bus });
 });
 
-// ── DELETE /api/fleet/:id ────────────────────────────────────────────────────
-router.delete('/:id', requireAdmin, (req, res) => {
-  const result = db.prepare('DELETE FROM fleet_buses WHERE id = ?').run(req.params.id);
-  if (result.changes === 0) {
-    return res.status(404).json({ ok: false, error: 'Bus not found.' });
-  }
+/** DELETE /api/fleet/:id */
+router.delete('/:id', (req, res) => {
+  const db = readDb();
+  const idx = db.fleet.findIndex(b => b.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ ok: false, error: 'Bus not found.' });
+
+  db.fleet.splice(idx, 1);
+  writeDb(db);
+
   res.json({ ok: true });
 });
 
