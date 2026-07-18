@@ -119,6 +119,15 @@
       <input type="email" id="regEmail" placeholder="you@exceltravel.rw" autocomplete="email" />
     </div>
     <div class="field">
+      <label for="regStation">Station</label>
+      <select id="regStation" style="padding:10px 12px;border:1px solid var(--gray-300);border-radius:8px;font-size:15px;font-family:inherit;color:var(--gray-900);background:white;">
+        <option value="">Select your station...</option>
+        <option value="merez">Merez Station</option>
+        <option value="rubis">Rubis Station</option>
+      </select>
+      <span class="hint">You'll only see and submit entries for this station</span>
+    </div>
+    <div class="field">
       <label for="regPassword">Password</label>
       <input type="password" id="regPassword" placeholder="At least 8 characters" oninput="checkStrength(this.value)" />
       <div class="pw-strength">
@@ -169,10 +178,11 @@
       clearError();
       const name     = document.getElementById('regName').value.trim();
       const email    = document.getElementById('regEmail').value.trim();
+      const station  = document.getElementById('regStation').value;
       const password = document.getElementById('regPassword').value;
       const confirm  = document.getElementById('regConfirm').value;
 
-      if (!name || !email || !password || !confirm) { setError('All fields are required.'); return; }
+      if (!name || !email || !station || !password || !confirm) { setError('All fields are required.'); return; }
       if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
       if (password !== confirm) { setError('Passwords do not match.'); return; }
 
@@ -180,7 +190,7 @@
       submitBtn.disabled = true;
       submitBtn.textContent = 'Creating account...';
 
-      const result = await Auth.register({ name, email, password });
+      const result = await Auth.register({ name, email, password, station });
 
       submitBtn.disabled = false;
       submitBtn.textContent = 'Create account';

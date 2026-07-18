@@ -68,8 +68,8 @@ const Auth = (() => {
   // ── Public API ───────────────────────────────────────────────────────────
 
   /** Register a new agent. Returns { ok, user, error } */
-  async function register({ name, email, password }) {
-    return request('/auth/register', { method: 'POST', body: { name, email, password } });
+  async function register({ name, email, password, station }) {
+    return request('/auth/register', { method: 'POST', body: { name, email, password, station } });
   }
 
   /** Login. On success, stores the JWT and cached session. Returns { ok, user, error } */
@@ -100,12 +100,25 @@ const Auth = (() => {
       if (!result.ok) {
         clearToken();
         window.location.href = redirectTo;
+      } else if (result.user) {
+        setSession(result.user); // keep cache current (e.g. newly added fields like station)
       }
     });
     return session;
   }
 
-  /** Require admin — redirect if not admin. */
+  /** Re-fetch the current user from the server and refresh the cached
+   *  session. Use this before trusting session fields (like `station`)
+   *  that might be missing from an older cached session. Returns the
+   *  fresh user object, or null if the session is invalid. */
+  async function refreshSession() {
+    const result = await request('/auth/me', { auth: true });
+    if (result.ok && result.user) {
+      setSession(result.user);
+      return result.user;
+    }
+    return null;
+  }
   function requireAdmin(redirectTo = '../login.html') {
     const session = requireLogin(redirectTo);
     if (session && session.role !== 'admin') {
@@ -132,6 +145,6 @@ const Auth = (() => {
   }
 
   return { register, login, logout, getSession, getToken, requireLogin, requireAdmin,
-           generateResetToken, resetPassword };
+           generateResetToken, resetPassword, refreshSession };
 
 })();

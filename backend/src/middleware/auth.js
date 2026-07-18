@@ -17,7 +17,7 @@ function authRequired(req, res, next) {
     if (!user) {
       return res.status(401).json({ ok: false, error: 'User no longer exists.' });
     }
-    req.user = { id: user.id, name: user.name, email: user.email, role: user.role };
+    req.user = { id: user.id, name: user.name, email: user.email, role: user.role, station: user.station || null };
     next();
   } catch {
     return res.status(401).json({ ok: false, error: 'Session expired. Please sign in again.' });

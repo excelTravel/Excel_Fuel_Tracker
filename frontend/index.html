@@ -85,7 +85,7 @@
           </div>
           <div class="form-field">
             <label for="pricePerLitre">Price per litre (RWF) <span class="req">*</span></label>
-            <input type="number" id="pricePerLitre" placeholder="0" min="0" required oninput="calcTotal()" />
+            <input type="number" id="pricePerLitre" placeholder="0" min="0" step="1" value="2927" required oninput="calcTotal()" />
           </div>
           <div class="form-field">
             <label for="paymentStatus">Payment status <span class="req">*</span></label>
@@ -128,7 +128,7 @@
     <!-- MY ENTRIES LOG -->
     <div class="table-card" style="margin-top:28px;">
       <div class="table-header">
-        <span class="chart-title">My submissions today</span>
+        <span class="chart-title">Station submissions today</span>
         <span id="myEntryCount" style="font-size:13px;color:#6B7280;"></span>
       </div>
       <div class="table-wrap">

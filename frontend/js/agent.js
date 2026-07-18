@@ -8,15 +8,26 @@ if (_session && _session.role === 'admin') {
   window.location.href = 'pages/admin-dashboard.html';
 }
 
-// Show agent name in nav
-document.addEventListener('DOMContentLoaded', () => {
-  if (_session) {
-    document.getElementById('navUser').textContent = _session.name;
+// Show agent name in nav, and self-heal the station: an older cached
+// session may predate the `station` field, so re-fetch from the server
+// before trusting it (this is what was silently defaulting everyone to
+// Merez when their local session was missing/stale on that field).
+document.addEventListener('DOMContentLoaded', async () => {
+  const fresh = await Auth.refreshSession();
+  if (fresh) {
+    currentStation = fresh.station;
+    document.getElementById('navUser').textContent = fresh.name;
   }
+  if (!currentStation) {
+    alert('Your account has no station assigned. Please contact your admin.');
+  }
+  lockStation();
   renderMyLog();
 });
 
-let currentStation = 'merez';
+// Agents are permanently tied to the station they registered under —
+// the station toggle no longer lets them switch, it just displays it.
+let currentStation = _session && _session.station;
 
 // Set datetime input to now
 (function initTime() {
@@ -27,13 +38,26 @@ let currentStation = 'merez';
   input.value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
 })();
 
-function setStation(s) {
-  currentStation = s;
+function lockStation() {
   const btnK = document.getElementById('btnKigali');
   const btnM = document.getElementById('btnMusanze');
-  btnK.className = 'station-btn kigali' + (s === 'merez' ? ' active' : '');
-  btnM.className = 'station-btn musanze' + (s === 'rubis' ? ' active' : '');
+  if (!btnK || !btnM) return;
+  btnK.className = 'station-btn kigali' + (currentStation === 'merez' ? ' active' : '');
+  btnM.className = 'station-btn musanze' + (currentStation === 'rubis' ? ' active' : '');
+  // Disable switching — station is fixed to the agent's account.
+  btnK.disabled = true;
+  btnM.disabled = true;
+  btnK.style.opacity = currentStation === 'merez' ? '1' : '0.4';
+  btnM.style.opacity = currentStation === 'rubis' ? '1' : '0.4';
+  btnK.style.cursor = 'default';
+  btnM.style.cursor = 'default';
+  btnK.removeAttribute('onclick');
+  btnM.removeAttribute('onclick');
 }
+
+// Standard fuel price per litre — pre-filled on the form, but agents can
+// still overwrite it by hand for the rare entry where the price changed.
+const DEFAULT_FUEL_PRICE = 2927;
 
 function calcTotal() {
   const litres = parseFloat(document.getElementById('litres').value) || 0;
@@ -80,11 +104,13 @@ async function submitEntry(e) {
     return;
   }
 
-  // Reset form
-  ['busPlate','driverName','odometer','litres','pricePerLitre','notes'].forEach(id => {
+  // Reset form — price per litre goes back to the standard default rather
+  // than blank, since it rarely changes day to day.
+  ['busPlate','driverName','odometer','litres','notes'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  document.getElementById('pricePerLitre').value = DEFAULT_FUEL_PRICE;
   document.getElementById('paymentStatus').value = '';
   document.getElementById('totalValue').textContent = 'RWF 0';
 
@@ -100,13 +126,15 @@ async function submitEntry(e) {
   renderMyLog();
 }
 
-/** Render this agent's own entries */
+/** Render this station's log — the server already scopes /entries to the
+ *  logged-in agent's own station, so agents never see the other station's
+ *  submissions here. */
 async function renderMyLog() {
   if (!_session) return;
   const tbody   = document.getElementById('myLogBody');
   const counter = document.getElementById('myEntryCount');
 
-  const entries = await Store.getByAgent(_session.id);
+  const entries = await Store.getAll();
 
   counter.textContent = entries.length + ' entr' + (entries.length === 1 ? 'y' : 'ies');
 

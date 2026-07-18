@@ -8,18 +8,21 @@ const { authRequired } = require('../middleware/auth');
 const router = express.Router();
 
 function publicUser(u) {
-  return { id: u.id, name: u.name, email: u.email, role: u.role };
+  return { id: u.id, name: u.name, email: u.email, role: u.role, station: u.station || null };
 }
 
-/** POST /api/auth/register — always creates an 'agent' account. */
+/** POST /api/auth/register — always creates an 'agent' account, tied to one station. */
 router.post('/register', (req, res) => {
-  const { name, email, password } = req.body || {};
+  const { name, email, password, station } = req.body || {};
 
-  if (!name || !email || !password) {
+  if (!name || !email || !password || !station) {
     return res.status(400).json({ ok: false, error: 'All fields are required.' });
   }
   if (password.length < 8) {
     return res.status(400).json({ ok: false, error: 'Password must be at least 8 characters.' });
+  }
+  if (!['merez', 'rubis'].includes(station)) {
+    return res.status(400).json({ ok: false, error: 'Please select a valid station.' });
   }
 
   const db = readDb();
@@ -35,6 +38,7 @@ router.post('/register', (req, res) => {
     email: normEmail,
     passwordHash: bcrypt.hashSync(password, 10),
     role: 'agent',
+    station, // agents are permanently scoped to the station they register under
     resetToken: null,
     resetTokenExpires: null,
     createdAt: new Date().toISOString(),

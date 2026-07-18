@@ -7,12 +7,12 @@ const router = express.Router();
 
 router.use(authRequired);
 
-/** GET /api/entries — admin sees everything, agents see only their own. */
+/** GET /api/entries — admin sees everything, agents see only their own station's entries. */
 router.get('/', (req, res) => {
   const db = readDb();
   const entries = req.user.role === 'admin'
     ? db.entries
-    : db.entries.filter(e => e.userId === req.user.id);
+    : db.entries.filter(e => e.station === req.user.station);
 
   entries.sort((a, b) => new Date(b.entryTime) - new Date(a.entryTime));
   res.json({ ok: true, entries });
@@ -24,7 +24,12 @@ router.post('/', (req, res) => {
   const litres = parseFloat(b.litres);
   const pricePerLitre = parseFloat(b.pricePerLitre);
 
-  if (!b.busPlate || !b.driverName || !b.station || !b.paymentStatus || !b.entryTime) {
+  // Agents can only ever submit to their own assigned station — the client's
+  // `station` value is ignored for them and replaced with the one on file,
+  // so a Merez agent can't post (or spoof) a Rubis entry and vice versa.
+  const station = req.user.role === 'admin' ? b.station : req.user.station;
+
+  if (!b.busPlate || !b.driverName || !station || !b.paymentStatus || !b.entryTime) {
     return res.status(400).json({ ok: false, error: 'Missing required fields.' });
   }
   if (!Number.isFinite(litres) || litres <= 0) {
@@ -33,7 +38,7 @@ router.post('/', (req, res) => {
   if (!Number.isFinite(pricePerLitre) || pricePerLitre < 0) {
     return res.status(400).json({ ok: false, error: 'Price per litre must be a valid number.' });
   }
-  if (!['merez', 'rubis'].includes(b.station)) {
+  if (!['merez', 'rubis'].includes(station)) {
     return res.status(400).json({ ok: false, error: 'Invalid station.' });
   }
   if (!['Paid', 'Pending', 'Credit'].includes(b.paymentStatus)) {
@@ -46,7 +51,7 @@ router.post('/', (req, res) => {
     userId: req.user.id,
     agentName: req.user.name,
     agentEmail: req.user.email,
-    station: b.station,
+    station,
     busPlate: String(b.busPlate).trim().toUpperCase(),
     driverName: String(b.driverName).trim(),
     odometer: b.odometer !== undefined && b.odometer !== null && b.odometer !== ''
