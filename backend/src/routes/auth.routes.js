@@ -11,6 +11,56 @@ function publicUser(u) {
   return { id: u.id, name: u.name, email: u.email, role: u.role, station: u.station || null };
 }
 
+function getBootstrapAdminEmails() {
+  const fromList = process.env.ADMIN_EMAILS
+    ?.split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (fromList?.length) {
+    return fromList;
+  }
+
+  const single = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  return single ? [single] : [];
+}
+
+function ensureBootstrapAdmin(db) {
+  const adminPassword = process.env.ADMIN_PASSWORD?.trim();
+  if (!adminPassword) {
+    return db;
+  }
+
+  const adminEmails = getBootstrapAdminEmails();
+  if (!adminEmails.length) {
+    return db;
+  }
+
+  for (const adminEmail of adminEmails) {
+    const existing = db.users.find((u) => u.email.toLowerCase() === adminEmail);
+    if (existing) {
+      continue;
+    }
+
+    const adminUser = {
+      id: crypto.randomUUID(),
+      name: 'Admin',
+      email: adminEmail,
+      passwordHash: bcrypt.hashSync(adminPassword, 10),
+      role: 'admin',
+      station: null,
+      resetToken: null,
+      resetTokenExpires: null,
+      createdAt: new Date().toISOString(),
+    };
+
+    db.users.push(adminUser);
+  }
+
+  writeDb(db);
+  return db;
+}
+
 /** POST /api/auth/register — always creates an 'agent' account, tied to one station. */
 router.post('/register', (req, res) => {
   const { name, email, password, station } = req.body || {};
@@ -59,6 +109,8 @@ router.post('/login', (req, res) => {
   }
 
   const db = readDb();
+  ensureBootstrapAdmin(db);
+
   const user = db.users.find(u => u.email.toLowerCase() === String(email).trim().toLowerCase());
 
   if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
@@ -90,9 +142,6 @@ router.post('/forgot', (req, res) => {
   user.resetTokenExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
   writeDb(db);
 
-  // NOTE: in production this code should be emailed to the user, not
-  // returned in the API response. It's returned directly here only because
-  // this project has no email/SMS provider wired up yet.
   res.json({ ok: true, token });
 });
 

@@ -59,6 +59,12 @@
     .chart-card-compact .chart-card-header { margin-bottom: 10px; }
     .chart-card-compact .chart-title { font-size: 13px; }
     .chart-card-compact canvas { max-height: 110px !important; }
+    @media (max-width: 600px) {
+      .agent-summary-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    }
+    @media (max-width: 400px) {
+      .agent-summary-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
