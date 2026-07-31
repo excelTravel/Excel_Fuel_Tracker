@@ -22,12 +22,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     alert('Your account has no station assigned. Please contact your admin.');
   }
   lockStation();
+  populatePlateList();
   renderMyLog();
 });
 
 // Agents are permanently tied to the station they registered under —
 // the station toggle no longer lets them switch, it just displays it.
 let currentStation = _session && _session.station;
+
+// Known bus plates per station, used to populate the plate-number
+// suggestions (datalist). Agents can still type a plate that isn't
+// on this list — the datalist only suggests, it never restricts input.
+const STATION_BUS_PLATES = {
+  merez: [
+    'RAC126Q','RAB893K','RAB939V','RAB049J','RAB597M','RAC129Q','RAB320D',
+    'RAD495Z','RAH114K','RAC127Q','RAE301U','RAC124Q','RAC185X','RAH730H',
+    'RAB208L','RAB317D','RAB537V','RAI203B','RAC912J','RAC128Q','RAI209B',
+    'RAB704L','RAH118K','RAH573G','RAI255W','RAC306W','RAD547X','RAJ291J',
+  ],
+  rubis: [
+    'RAD546X','RAD549X','RAB239L','RAC765X','RAC306X','RAD545X','RAD047I',
+    'RAJ290J','RAB967H','RAC125Q','RAE425J','RAC305X','RAB241H','RAB666M',
+    'RAD969Y','RAC414H','RAJ288J','RAJ289J','RAJ287J','RAE587C','RAE586C',
+    'RAD548X','RAC180T','RAJ291J','RAI255W','RAB049J',
+  ],
+};
+
+function populatePlateList() {
+  const list = document.getElementById('busPlateList');
+  if (!list) return;
+  const plates = STATION_BUS_PLATES[currentStation] || [];
+  list.innerHTML = plates.map(p => `<option value="${p}"></option>`).join('');
+}
 
 // Set datetime input to now
 (function initTime() {

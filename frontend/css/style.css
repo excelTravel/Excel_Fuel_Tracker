@@ -590,17 +590,99 @@ body {
 }
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
+
+/* Prevent iOS Safari from auto-zooming into inputs — anything under 16px
+   font-size on a form control triggers a zoom-in on focus. */
+@media (max-width: 768px) {
+  .form-field input,
+  .form-field select {
+    font-size: 16px;
+  }
+}
+
+/* ── Tablet / iPad (≤1024px) ─────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .hq-main { max-width: 100%; padding: 24px 20px 50px; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .chart-row { grid-template-columns: 1fr; }
+  .agent-summary-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+}
+
+/* ── Small tablet / large phone (≤900px) ─────────────────────────────────── */
 @media (max-width: 900px) {
   .kpi-grid { grid-template-columns: 1fr 1fr; }
   .chart-row { grid-template-columns: 1fr; }
+  .fleet-layout { grid-template-columns: 1fr; }
 }
 
+/* ── Phone (≤600px) ───────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
-  .form-grid { grid-template-columns: 1fr; }
-  .kpi-grid  { grid-template-columns: 1fr 1fr; }
-  .hq-page-header { flex-direction: column; gap: 12px; }
-  .navbar { padding: 0 14px; }
-  .agent-main, .hq-main { padding: 18px 14px 50px; }
+  html { font-size: 15px; }
+
+  .navbar {
+    padding: 0 14px;
+    height: auto;
+    min-height: 56px;
+    flex-wrap: wrap;
+    row-gap: 6px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .nav-brand { gap: 8px; }
+  .nav-logo { width: 32px; height: 32px; font-size: 12px; }
+  .nav-title { font-size: 13px; }
+  .nav-sub { display: none; }
+  .nav-links { gap: 2px; flex-wrap: wrap; justify-content: flex-end; }
+  .nav-link { padding: 6px 10px; font-size: 12px; }
+
+  .agent-main, .hq-main { padding: 16px 14px 50px; }
+
+  .page-title { font-size: 19px; }
+  .page-sub { font-size: 13px; }
+
+  /* Station toggle — stack full-width so labels never truncate */
+  .station-toggle { grid-template-columns: 1fr; gap: 8px; }
+  .station-btn { padding: 13px; font-size: 15px; min-height: 46px; }
+
+  .form-card { padding: 14px; }
+  .form-grid { grid-template-columns: 1fr; gap: 12px; }
+
+  .form-field input,
+  .form-field select { padding: 11px 12px; min-height: 44px; }
+
+  .total-display { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .total-value { font-size: 22px; }
+
+  .btn-submit { padding: 15px; font-size: 15px; min-height: 48px; }
+
+  .hq-page-header { flex-direction: column; align-items: stretch; gap: 12px; }
+  .btn-export { width: 100%; justify-content: center; padding: 11px 16px; min-height: 44px; }
+
+  .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .kpi-card { padding: 14px; }
+  .kpi-value { font-size: 20px; }
+
+  .chart-row { grid-template-columns: 1fr; gap: 12px; }
+  .chart-card, .breakdown-card { padding: 14px; }
+
+  .table-header { flex-direction: column; align-items: stretch; gap: 10px; padding: 14px; }
+  .filter-row { flex-wrap: wrap; }
+  .filter-btn { padding: 6px 12px; min-height: 32px; }
+
+  /* Let the table scroll horizontally instead of squeezing columns */
+  .log-table { font-size: 12px; }
+  .log-table th, .log-table td { padding: 9px 12px; }
+
+  .fleet-summary-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .agent-summary-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+}
+
+/* ── Small phone (≤400px) ─────────────────────────────────────────────────── */
+@media (max-width: 400px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+  .fleet-summary-row { grid-template-columns: 1fr; }
+  .agent-summary-grid { grid-template-columns: 1fr; }
+  .nav-title { display: none; }
 }
 
 /* ── Auth additions ───────────────────────────────────────────────────────── */
