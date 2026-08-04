@@ -32,7 +32,7 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true, service: 'excel-travel-fuel-backend', time: new Date().toISOString() });
 });
 
-app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
 app.use('/api/entries', entriesRoutes);
 app.use('/api/fleet', fleetRoutes);
 
