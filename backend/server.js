@@ -25,14 +25,11 @@ const corsOrigin = process.env.CORS_ORIGIN && process.env.CORS_ORIGIN !== '*'
 app.use(cors({ origin: corsOrigin }));
 app.use(express.json());
 
-initDb();
-seedAdmin();
-
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, service: 'excel-travel-fuel-backend', time: new Date().toISOString() });
 });
 
-app.use('/auth', authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/entries', entriesRoutes);
 app.use('/api/fleet', fleetRoutes);
 
@@ -47,6 +44,22 @@ app.use((err, req, res, next) => {
   res.status(500).json({ ok: false, error: 'Internal server error.' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Excel Travel & Tours fuel backend running at http://127.0.0.1:${PORT}/api`);
-});
+// Postgres connections are async, so the DB has to be ready — table
+// creation done and the seed admin in place — before we start accepting
+// requests. That's why this is wrapped in an async start() instead of
+// calling initDb()/seedAdmin() directly at the top level.
+async function start() {
+  try {
+    await initDb();
+    await seedAdmin();
+  } catch (err) {
+    console.error('Failed to initialize the database:', err);
+    process.exit(1);
+  }
+
+  app.listen(PORT, () => {
+    console.log(`Excel Travel & Tours fuel backend running at http://127.0.0.1:${PORT}/api`);
+  });
+}
+
+start();
