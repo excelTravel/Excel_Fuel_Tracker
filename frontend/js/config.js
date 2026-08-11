@@ -14,4 +14,4 @@
  * That keeps one config.js working across local/staging/production without
  * editing source per deploy.
  */
-const API_BASE_URL = 'https://excel-fuel-tracker.onrender.com';
+const API_BASE_URL = 'https://excel-fuel-tracker.onrender.com/api';
