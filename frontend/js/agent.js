@@ -2,6 +2,12 @@
  * agent.js — handles the agent fuel entry form (index.html)
  */
 
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
 // Auth guard — must be logged in as agent (not admin)
 const _session = Auth.requireLogin('login.html');
 if (_session && _session.role === 'admin') {
@@ -103,6 +109,8 @@ async function submitEntry(e) {
   const paymentStatus = document.getElementById('paymentStatus').value;
   const entryTime     = document.getElementById('entryTime').value;
   const notes         = document.getElementById('notes').value.trim();
+  const reasonField    = document.getElementById('reason');
+  const reason          = reasonField ? reasonField.value.trim() : '';
 
   const entry = {
     station: currentStation,
@@ -114,6 +122,7 @@ async function submitEntry(e) {
     paymentStatus,
     entryTime,
     notes,
+    reason,
   };
   // userId / agentName / agentEmail / cost / id are now assigned server-side
   // from the authenticated session — no need to set them here.
@@ -121,21 +130,34 @@ async function submitEntry(e) {
   const submitBtn = document.querySelector('.btn-submit');
   submitBtn.disabled = true;
 
-  const saved = await Store.add(entry);
+  const result = await Store.add(entry);
 
   submitBtn.disabled = false;
 
-  if (!saved) {
+  if (!result.ok) {
+    if (result.duplicate) {
+      // Reveal the reason field and stop — don't reset the form, so the
+      // agent can just fill in the reason and hit submit again.
+      const card = document.getElementById('duplicateReasonCard');
+      if (card) {
+        card.style.display = '';
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      if (reasonField) reasonField.focus();
+      return;
+    }
     alert('Could not save this entry. Please check your connection and try again.');
     return;
   }
 
   // Reset form — price per litre goes back to the standard default rather
   // than blank, since it rarely changes day to day.
-  ['busPlate','driverName','odometer','litres','notes'].forEach(id => {
+  ['busPlate','driverName','odometer','litres','notes','reason'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  const duplicateCard = document.getElementById('duplicateReasonCard');
+  if (duplicateCard) duplicateCard.style.display = 'none';
   document.getElementById('pricePerLitre').value = DEFAULT_FUEL_PRICE;
   document.getElementById('paymentStatus').value = '';
   document.getElementById('totalValue').textContent = 'RWF 0';
@@ -181,7 +203,7 @@ async function renderMyLog() {
             ${e.station === 'merez' ? 'Merez' : 'Rubis'}
           </span>
         </td>
-        <td><strong>${e.busPlate}</strong></td>
+        <td><strong>${e.busPlate}</strong>${e.reason ? `<div style="font-size:11px;color:#B45309;margin-top:2px;">⚠ ${escapeHtml(e.reason)}</div>` : ''}</td>
         <td>${e.driverName}</td>
         <td><strong>${e.litres.toFixed(1)} L</strong></td>
         <td><strong>${e.cost ? e.cost.toLocaleString() : '—'}</strong></td>

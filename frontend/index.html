@@ -120,6 +120,20 @@
         </div>
       </div>
 
+      <!-- DUPLICATE ENTRY REASON — hidden unless this plate already has an
+           entry today, in which case agent.js reveals it and requires it
+           filled in before resubmitting. -->
+      <div class="form-card" id="duplicateReasonCard" style="display:none; border-color:#F59E0B;">
+        <div class="form-card-header" style="color:#B45309;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          This bus already has an entry today
+        </div>
+        <div class="form-field" style="margin:0">
+          <label for="reason">Reason for the additional fuel-up <span class="req">*</span></label>
+          <input type="text" id="reason" placeholder="e.g. Ran out mid-route, returned for a top-up" />
+        </div>
+      </div>
+
       <button type="submit" class="btn-submit">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         Submit to HQ
@@ -154,6 +168,7 @@
 
   </main>
 
+  <script>window.API_BASE_URL = 'https://excel-fuel-tracker.onrender.com/api';</script>
   <script src="js/config.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/store.js"></script>

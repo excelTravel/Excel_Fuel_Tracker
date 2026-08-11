@@ -51,6 +51,27 @@ router.post('/', async (req, res, next) => {
     }
 
     const db = await readDb();
+
+    // Same bus, same station, same calendar day (entryTime is a
+    // datetime-local value like "2026-08-11T10:06" — the first 10 chars
+    // are the date). If one already exists, the agent must give a reason
+    // for the second fuel-up before it's accepted.
+    const entryDate = String(b.entryTime).slice(0, 10);
+    const isDuplicate = db.entries.some(existing =>
+      existing.station === station &&
+      existing.busPlate === String(b.busPlate).trim().toUpperCase() &&
+      String(existing.entryTime).slice(0, 10) === entryDate
+    );
+    const reason = b.reason ? String(b.reason).trim() : '';
+
+    if (isDuplicate && !reason) {
+      return res.status(409).json({
+        ok: false,
+        duplicate: true,
+        error: 'This bus already has an entry today. Please give a reason for the additional fuel-up.',
+      });
+    }
+
     const entry = {
       id: crypto.randomUUID(),
       userId: req.user.id,
@@ -67,6 +88,7 @@ router.post('/', async (req, res, next) => {
       paymentStatus: b.paymentStatus,
       entryTime: b.entryTime,
       notes: b.notes ? String(b.notes).trim() : '',
+      reason: isDuplicate ? reason : null,
       createdAt: new Date().toISOString(),
     };
 

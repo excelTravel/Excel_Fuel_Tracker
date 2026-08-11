@@ -19,7 +19,7 @@ const { Pool } = require('pg');
 
 if (!process.env.DATABASE_URL) {
   console.warn(
-    '\n  No DATABASE_URL set (copy .env.example to .env and set one).\n' +
+    '\n⚠️  No DATABASE_URL set (copy .env.example to .env and set one).\n' +
     '    The app cannot connect to a database without it.\n'
   );
 }
@@ -66,6 +66,7 @@ async function initDb() {
       "paymentStatus" TEXT NOT NULL,
       "entryTime" TEXT NOT NULL,
       notes TEXT NOT NULL,
+      reason TEXT,
       "createdAt" TEXT NOT NULL
     );
 
@@ -78,6 +79,11 @@ async function initDb() {
       "createdAt" TEXT NOT NULL
     );
   `);
+
+  // Migration: the "reason" column was added after the entries table already
+  // existed in some environments — CREATE TABLE IF NOT EXISTS above won't add
+  // it to a table that's already there, so add it explicitly if missing.
+  await pool.query(`ALTER TABLE entries ADD COLUMN IF NOT EXISTS reason TEXT;`);
 }
 
 async function readDb() {
@@ -110,10 +116,10 @@ async function writeDb(data) {
     for (const e of payload.entries || []) {
       await client.query(
         `INSERT INTO entries (id, "userId", "agentName", "agentEmail", station, "busPlate", "driverName", odometer,
-                               litres, "pricePerLitre", cost, "paymentStatus", "entryTime", notes, "createdAt")
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+                               litres, "pricePerLitre", cost, "paymentStatus", "entryTime", notes, reason, "createdAt")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
         [e.id, e.userId, e.agentName, e.agentEmail, e.station, e.busPlate, e.driverName, e.odometer ?? null,
-         e.litres, e.pricePerLitre, e.cost, e.paymentStatus, e.entryTime, e.notes || '', e.createdAt]
+         e.litres, e.pricePerLitre, e.cost, e.paymentStatus, e.entryTime, e.notes || '', e.reason || null, e.createdAt]
       );
     }
 

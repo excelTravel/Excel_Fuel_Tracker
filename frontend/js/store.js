@@ -47,14 +47,16 @@ const Store = (() => {
     return all.filter(e => e.userId === userId);
   }
 
-  /** Add a new entry. Returns the created entry, or null on failure. */
+  /** Add a new entry. Returns { ok, entry, error, duplicate }. Callers that
+   *  only care about success/failure can check `.ok`; agent.js also checks
+   *  `.duplicate` to prompt for a reason when the same plate already has an
+   *  entry today. */
   async function add(entry) {
     const result = await apiRequest('/entries', { method: 'POST', body: entry });
     if (!result.ok) {
       console.error('Failed to save entry:', result.error);
-      return null;
     }
-    return result.entry;
+    return result;
   }
 
   /** Remove entry by id. Returns true on success. */

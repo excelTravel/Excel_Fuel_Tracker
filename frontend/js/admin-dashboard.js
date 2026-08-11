@@ -3,6 +3,12 @@
  * Sees ALL entries from all agents.
  */
 
+function escapeAttr(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML.replace(/"/g, '&quot;');
+}
+
 // Auth guard — admin only
 const _adminSession = Auth.requireAdmin('../login.html');
 
@@ -147,7 +153,7 @@ function renderTable(entries) {
             ${e.station === 'merez' ? 'Merez' : 'Rubis'}
           </span>
         </td>
-        <td><strong>${e.busPlate}</strong></td>
+        <td><strong title="${e.reason ? escapeAttr(e.reason) : ''}">${e.busPlate}</strong>${e.reason ? ' ⚠' : ''}</td>
         <td>${e.driverName}</td>
         <td><strong>${e.litres.toFixed(1)} L</strong></td>
         <td style="color:#6B7280">${e.pricePerLitre ? e.pricePerLitre.toLocaleString() : '—'}</td>

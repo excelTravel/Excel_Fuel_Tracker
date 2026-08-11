@@ -23,7 +23,7 @@ HQ admins get a live dashboard across both stations plus fleet management.
 |----------|------|
 | Frontend | Vanilla HTML / CSS / JS (no build step) |
 | Backend  | Node.js + Express |
-| Storage  | SQLite via the built-in `node:sqlite` module |
+| Storage  | Postgres via the `pg` client |
 | Auth     | JWT (`jsonwebtoken`) + `bcryptjs` for password hashing |
 
 ## Project structure
@@ -33,10 +33,10 @@ Excel-Fuel-Tracker/
 ├── backend/
 │   ├── server.js            # Express app entrypoint
 │   ├── src/
-│   │   ├── db.js            # SQLite setup + seed admin
+│   │   ├── db.js            # Postgres setup + seed admin
 │   │   ├── middleware/auth.js
 │   │   └── routes/          # auth, entries, fleet
-│   ├── data/                # SQLite file lives here (gitignored)
+│   ├── scripts/              # create-admin, update-email, update-password
 │   ├── .env.example         # copy to .env and fill in
 │   └── package.json
 └── frontend/
@@ -54,7 +54,8 @@ Excel-Fuel-Tracker/
 
 ### Backend
 
-Requires **Node ≥ 22.13** (the built-in `node:sqlite` module needs it).
+Requires a running Postgres instance (local install, or a Render/other
+managed Postgres) and Node ≥ 18.
 
 ```bash
 cd backend
@@ -63,12 +64,19 @@ cp .env.example .env
 ```
 
 Open `.env` and set:
+- `DATABASE_URL` — your Postgres connection string, e.g.
+  `postgresql://postgres:yourpassword@localhost:5432/fuel_tracker` for a
+  local database (create it first with `createdb fuel_tracker` or via
+  pgAdmin), or the connection string from your Render Postgres instance.
 - `JWT_SECRET` — generate one with:
   ```bash
   node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
   ```
 - `ADMIN_EMAIL` / `ADMIN_PASSWORD` — the seed admin account, created
   automatically on first run if no user with that email exists yet.
+
+Tables are created automatically on startup if they don't already exist —
+no separate migration step needed.
 
 Run it:
 
@@ -99,6 +107,7 @@ at `http://127.0.0.1:5000/api` by default (see `js/config.js`).
 | Variable          | Description                                              |
 |-------------------|------------------------------------------------------------|
 | `PORT`            | Port the server listens on (default `5000`)                |
+| `DATABASE_URL`     | Postgres connection string — required                       |
 | `JWT_SECRET`       | Long random string used to sign auth tokens — required     |
 | `JWT_EXPIRES_IN`   | Token lifetime (default `7d`)                              |
 | `ADMIN_NAME`       | Display name for the seeded admin account                  |
@@ -126,30 +135,52 @@ All routes are prefixed with `/api`. Authenticated routes expect
 | POST   | `/fleet`         | admin  | Add a bus                                          |
 | DELETE | `/fleet/:id`     | admin  | Remove a bus                                       |
 
+## Account management scripts
+
+There's no UI for editing accounts yet (and no public "register as admin"
+route, on purpose). These run directly against the database — from
+`backend/`, with `DATABASE_URL` pointed at whichever database you mean to
+change:
+
+```bash
+node scripts/create-admin.js "Full Name" "email@example.com" "StrongPassword123"
+node scripts/update-email.js "old@example.com" "new@example.com"
+node scripts/update-password.js "email@example.com" "NewStrongPassword123"
+```
+
 ## Deployment
 
-Deploy backend and frontend as two separate services (e.g. Render Web
-Service + Static Site):
+Deploy three separate services on Render: Postgres, backend, frontend.
 
-1. **Backend** — set all environment variables above, use `npm install` as
-   the build command and `npm start` to run. Attach a **persistent disk**
-   mounted at the backend's `data/` directory, or the SQLite file resets on
-   every redeploy.
-2. **Frontend** — deploy as a static site. Before deploying, point it at the
-   live backend by adding this above the `config.js` script tag on every
-   HTML page:
+1. **Postgres** — Render dashboard → **+ New** → **Postgres**. Once created,
+   copy its **Internal Database URL** (for the backend to use) — internal
+   is faster and free, since both services live on Render's network.
+2. **Backend** (Web Service) — set all environment variables above,
+   including `DATABASE_URL` from step 1. Build command `npm install`, start
+   command `npm start`. No persistent disk needed anymore — Postgres is a
+   separate service, so your data survives backend redeploys/restarts
+   regardless of instance type.
+3. **Frontend** (Static Site) — before deploying, point it at the live
+   backend by adding this above the `config.js` script tag on every HTML
+   page:
    ```html
    <script>window.API_BASE_URL = 'https://<your-backend-url>/api';</script>
    <script src="js/config.js"></script>
    ```
-3. Once both are live, set the backend's `CORS_ORIGIN` to the frontend's
-   real URL (not `*`).
+4. Once both the backend and frontend are live, set the backend's
+   `CORS_ORIGIN` to the frontend's real URL (not `*`).
+
+To run one of the account-management scripts against the live Render
+database from your own machine, set `DATABASE_URL` in your local `.env` to
+the Postgres instance's **External Database URL** (found on its Info page)
+instead of a local one, then run the script normally.
 
 ## Known limitations / next steps
 
 - Password reset codes are currently returned directly in the API response
   rather than emailed/texted — fine for internal use, not for a public
   rollout.
-- SQLite has no real concurrency control. Fine for a small team; move to
-  Postgres if traffic grows.
+- `writeDb()` replaces the full contents of all three tables on every write
+  rather than doing targeted inserts/updates — fine for a small team's
+  traffic, but worth revisiting (per-route queries instead) if usage grows.
 - No automated tests yet.
