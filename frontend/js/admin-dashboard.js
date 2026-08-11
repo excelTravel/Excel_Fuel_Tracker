@@ -136,7 +136,7 @@ function renderAgentSummaries(all) {
 function renderTable(entries) {
   const tbody = document.getElementById('logBody');
   if (!entries.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="10">No entries for this filter.</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="11">No entries for this filter.</td></tr>`;
     return;
   }
 
@@ -153,12 +153,13 @@ function renderTable(entries) {
             ${e.station === 'merez' ? 'Merez' : 'Rubis'}
           </span>
         </td>
-        <td><strong title="${e.reason ? escapeAttr(e.reason) : ''}">${e.busPlate}</strong>${e.reason ? ' ⚠' : ''}</td>
+        <td><strong>${e.busPlate}</strong></td>
         <td>${e.driverName}</td>
         <td><strong>${e.litres.toFixed(1)} L</strong></td>
         <td style="color:#6B7280">${e.pricePerLitre ? e.pricePerLitre.toLocaleString() : '—'}</td>
         <td><strong>${e.cost ? e.cost.toLocaleString() : '—'}</strong></td>
         <td><span class="status-badge ${statusClass}">${e.paymentStatus}</span></td>
+        <td style="font-size:12px;color:#B45309;max-width:180px;">${e.reason ? escapeAttr(e.reason) : '—'}</td>
         <td>
           <button class="delete-btn" onclick="deleteEntry('${e.id}')" title="Delete entry">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>

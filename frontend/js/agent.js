@@ -203,11 +203,12 @@ async function renderMyLog() {
             ${e.station === 'merez' ? 'Merez' : 'Rubis'}
           </span>
         </td>
-        <td><strong>${e.busPlate}</strong>${e.reason ? `<div style="font-size:11px;color:#B45309;margin-top:2px;">⚠ ${escapeHtml(e.reason)}</div>` : ''}</td>
+        <td><strong>${e.busPlate}</strong></td>
         <td>${e.driverName}</td>
         <td><strong>${e.litres.toFixed(1)} L</strong></td>
         <td><strong>${e.cost ? e.cost.toLocaleString() : '—'}</strong></td>
         <td><span class="status-badge ${statusClass}">${e.paymentStatus}</span></td>
+        <td style="font-size:12px;color:#B45309;max-width:160px;">${e.reason ? escapeHtml(e.reason) : '—'}</td>
       </tr>`;
   }).join('');
 }
