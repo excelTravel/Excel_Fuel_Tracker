@@ -7,13 +7,28 @@ const router = express.Router();
 
 router.use(authRequired);
 
-/** GET /api/entries — admin sees everything, agents see only their own station's entries. */
+/** Today's date as YYYY-MM-DD in Rwanda time (the server itself may run in UTC). */
+function todayInKigali() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Kigali', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date());
+}
+
+/** GET /api/entries — admin sees everything; agents see only their own station's
+ *  entries from today (previous days' entries are hidden from them). */
 router.get('/', async (req, res, next) => {
   try {
     const db = await readDb();
-    const entries = req.user.role === 'admin'
-      ? db.entries
-      : db.entries.filter(e => e.station === req.user.station);
+    let entries;
+    if (req.user.role === 'admin') {
+      entries = db.entries;
+    } else {
+      const today = todayInKigali();
+      entries = db.entries.filter(e =>
+        e.station === req.user.station &&
+        String(e.entryTime).slice(0, 10) === today
+      );
+    }
 
     entries.sort((a, b) => new Date(b.entryTime) - new Date(a.entryTime));
     res.json({ ok: true, entries });

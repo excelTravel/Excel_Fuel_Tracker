@@ -59,6 +59,37 @@
     .chart-card-compact .chart-card-header { margin-bottom: 10px; }
     .chart-card-compact .chart-title { font-size: 13px; }
     .chart-card-compact canvas { max-height: 110px !important; }
+
+    /* Day / month log controls + reports */
+    .log-meta { font-size: 12px; color: #6B7280; margin-top: 3px; }
+    .log-toolbar {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 10px 20px; border-bottom: 1px solid #F3F4F6; background: #FAFAFA;
+    }
+    .view-toggle { display: flex; gap: 6px; }
+    .date-controls { display: flex; align-items: center; gap: 6px; }
+    .date-controls input, .report-controls input {
+      font-family: inherit; font-size: 13px; padding: 6px 10px;
+      border: 1px solid #E5E7EB; border-radius: 6px; background: white; color: #111827;
+    }
+    .nav-arrow {
+      background: white; border: 1px solid #E5E7EB; border-radius: 6px; cursor: pointer;
+      padding: 6px 10px; font-size: 13px; font-family: inherit; color: #374151;
+    }
+    .nav-arrow:hover { background: #F3F4F6; }
+    .report-card {
+      background: white; border: 1px solid #E5E7EB; border-radius: 10px;
+      padding: 16px 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .report-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .report-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .report-preview { font-size: 13px; color: #6B7280; margin-top: 10px; }
+    .report-preview strong { color: #111827; }
+    .link-btn { background: none; border: none; color: #2563EB; cursor: pointer; font-family: inherit; font-size: inherit; padding: 0; text-decoration: underline; }
+    @media (max-width: 600px) {
+      .log-toolbar { padding: 10px 14px; }
+      .report-card { padding: 14px; }
+    }
     @media (max-width: 600px) {
       .agent-summary-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
     }
@@ -189,10 +220,29 @@
       </div>
     </div>
 
+    <!-- MONTHLY REPORTS -->
+    <div class="report-card">
+      <div class="section-title">Monthly reports</div>
+      <div class="report-row">
+        <div class="report-controls">
+          <label for="reportMonth" style="font-size:13px;color:#374151;font-weight:500;">Month</label>
+          <input type="month" id="reportMonth" onchange="setReportMonth(this.value)" />
+        </div>
+        <button class="btn-export" id="reportBtn" onclick="downloadMonthlyReport()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download monthly report
+        </button>
+      </div>
+      <div class="report-preview" id="reportPreview">—</div>
+    </div>
+
     <!-- LOG TABLE -->
     <div class="table-card">
       <div class="table-header">
-        <span class="chart-title">Full fuel log</span>
+        <div>
+          <span class="chart-title" id="logTitle">Fuel log</span>
+          <div class="log-meta" id="logMeta"></div>
+        </div>
         <div class="filter-row">
           <button class="filter-btn active" id="f-all"    onclick="setFilter('all')">All</button>
           <button class="filter-btn" id="f-merez"         onclick="setFilter('merez')">Merez</button>
@@ -200,10 +250,26 @@
           <button class="filter-btn" id="f-unpaid"        onclick="setFilter('unpaid')">Unpaid</button>
         </div>
       </div>
+      <div class="log-toolbar">
+        <div class="view-toggle">
+          <button class="filter-btn active" id="v-day" onclick="setViewMode('day')">Day</button>
+          <button class="filter-btn" id="v-month" onclick="setViewMode('month')">Entire month</button>
+        </div>
+        <div class="date-controls" id="dayControls">
+          <button class="nav-arrow" onclick="shiftDay(-1)" title="Previous day">‹</button>
+          <input type="date" id="logDate" onchange="setLogDate(this.value)" />
+          <button class="nav-arrow" onclick="shiftDay(1)" title="Next day">›</button>
+          <button class="nav-arrow" onclick="goToday()">Today</button>
+        </div>
+        <div class="date-controls" id="monthControls" style="display:none;">
+          <input type="month" id="logMonth" onchange="setLogMonth(this.value)" />
+        </div>
+      </div>
       <div class="table-wrap">
         <table class="log-table">
           <thead>
             <tr>
+              <th>Date</th>
               <th>Time</th>
               <th>Agent</th>
               <th>Station</th>
@@ -219,7 +285,7 @@
           </thead>
           <tbody id="logBody">
             <tr class="empty-row">
-              <td colspan="10">No entries yet — agents submit fuel intake from their stations.</td>
+              <td colspan="12">No entries yet — agents submit fuel intake from their stations.</td>
             </tr>
           </tbody>
         </table>

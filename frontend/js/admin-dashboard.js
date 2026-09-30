@@ -15,14 +15,32 @@ const _adminSession = Auth.requireAdmin('../login.html');
 let activeFilter = 'all';
 let chartInstance = null;
 
+// Log view state: one day at a time by default, whole month on request.
+// Dates are kept as local-time strings ("YYYY-MM-DD" / "YYYY-MM") so they
+// line up with entryTime, which is a local datetime-local value.
+let viewMode = 'day';
+let lastAll = [];
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+function localDateKey(d) {
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+let selectedDate  = localDateKey(new Date());
+let selectedMonth = selectedDate.slice(0, 7);
+let reportMonth   = selectedMonth;
+
 document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('logDate').value     = selectedDate;
+  document.getElementById('logMonth').value    = selectedMonth;
+  document.getElementById('reportMonth').value = reportMonth;
   render();
   setInterval(render, 15000);
 });
 
 async function render() {
   const all      = await Store.getAll();
-  const filtered = filterEntries(all, activeFilter);
+  lastAll        = all;
+  const filtered = filterByPeriod(filterEntries(all, activeFilter));
   const s        = Store.stats(all);
 
   updateKPIs(s, all);
@@ -30,7 +48,59 @@ async function render() {
   updateBreakdown(s, all);
   renderAgentSummaries(all);
   renderTable(filtered);
+  updateReportPreview();
   updateTimestamp();
+}
+
+function entryDateKey(e) { return String(e.entryTime || '').slice(0, 10); }
+
+function filterByPeriod(entries) {
+  if (viewMode === 'month') return entries.filter(e => entryDateKey(e).slice(0, 7) === selectedMonth);
+  return entries.filter(e => entryDateKey(e) === selectedDate);
+}
+
+function niceDate(key) {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}
+function niceMonth(key) {
+  const [y, m] = key.split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString([], { month: 'long', year: 'numeric' });
+}
+
+function setViewMode(mode) {
+  viewMode = mode;
+  document.getElementById('v-day').classList.toggle('active', mode === 'day');
+  document.getElementById('v-month').classList.toggle('active', mode === 'month');
+  document.getElementById('dayControls').style.display   = mode === 'day' ? 'flex' : 'none';
+  document.getElementById('monthControls').style.display = mode === 'month' ? 'flex' : 'none';
+  if (mode === 'month') {
+    // Start the month view on the month of the day being looked at.
+    selectedMonth = selectedDate.slice(0, 7);
+    document.getElementById('logMonth').value = selectedMonth;
+  }
+  render();
+}
+function setLogDate(v) {
+  if (!v) return;
+  selectedDate = v;
+  render();
+}
+function setLogMonth(v) {
+  if (!v) return;
+  selectedMonth = v;
+  render();
+}
+function shiftDay(n) {
+  const [y, m, d] = selectedDate.split('-').map(Number);
+  selectedDate = localDateKey(new Date(y, m - 1, d + n));
+  document.getElementById('logDate').value = selectedDate;
+  render();
+}
+function goToday() {
+  selectedDate = localDateKey(new Date());
+  document.getElementById('logDate').value = selectedDate;
+  render();
 }
 
 function filterEntries(entries, filter) {
@@ -135,26 +205,41 @@ function renderAgentSummaries(all) {
 
 function renderTable(entries) {
   const tbody = document.getElementById('logBody');
+
+  // Title + summary line for whatever period is on screen
+  const litres = entries.reduce((s, e) => s + (e.litres || 0), 0);
+  const cost   = entries.reduce((s, e) => s + (e.cost || 0), 0);
+  document.getElementById('logTitle').textContent =
+    viewMode === 'month' ? 'Fuel log — ' + niceMonth(selectedMonth) : 'Fuel log — ' + niceDate(selectedDate);
+  document.getElementById('logMeta').textContent =
+    entries.length + (entries.length === 1 ? ' entry' : ' entries') +
+    ' · ' + litres.toFixed(1) + ' L · RWF ' + Math.round(cost).toLocaleString();
+
   if (!entries.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="11">No entries for this filter.</td></tr>`;
+    const hint = viewMode === 'day'
+      ? ` <button class="link-btn" onclick="setViewMode('month')">View entire month</button>`
+      : '';
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="12">No entries for this ${viewMode === 'day' ? 'day' : 'month'} / filter.${hint}</td></tr>`;
     return;
   }
 
   tbody.innerHTML = entries.map(e => {
     const dt         = new Date(e.entryTime);
+    const dateStr    = dt.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
     const timeStr    = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const statusClass = { 'Paid':'status-paid','Pending':'status-pending','Credit':'status-credit' }[e.paymentStatus] || 'status-pending';
     return `
       <tr>
-        <td style="color:#6B7280">${timeStr}</td>
-        <td style="font-size:12px;color:#374151">${e.agentName || '—'}</td>
+        <td style="color:#374151;white-space:nowrap">${dateStr}</td>
+        <td style="color:#6B7280;white-space:nowrap">${timeStr}</td>
+        <td style="font-size:12px;color:#374151">${e.agentName ? escapeAttr(e.agentName) : '—'}</td>
         <td>
           <span class="station-badge ${e.station === 'merez' ? 'badge-merez' : 'badge-rubis'}">
             ${e.station === 'merez' ? 'Merez' : 'Rubis'}
           </span>
         </td>
-        <td><strong>${e.busPlate}</strong></td>
-        <td>${e.driverName}</td>
+        <td><strong>${escapeAttr(e.busPlate)}</strong></td>
+        <td>${escapeAttr(e.driverName)}</td>
         <td><strong>${e.litres.toFixed(1)} L</strong></td>
         <td style="color:#6B7280">${e.pricePerLitre ? e.pricePerLitre.toLocaleString() : '—'}</td>
         <td><strong>${e.cost ? e.cost.toLocaleString() : '—'}</strong></td>
@@ -217,6 +302,84 @@ async function exportCSV() {
   const a    = document.createElement('a');
   a.href     = url;
   a.download = `excel-travel-fuel-log-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ---------- Monthly reports ----------
+
+function entriesForMonth(all, monthKey) {
+  return all
+    .filter(e => entryDateKey(e).slice(0, 7) === monthKey)
+    .sort((a, b) => new Date(a.entryTime) - new Date(b.entryTime)); // oldest -> newest
+}
+
+function setReportMonth(v) {
+  if (!v) return;
+  reportMonth = v;
+  updateReportPreview();
+}
+
+function updateReportPreview() {
+  const list   = entriesForMonth(lastAll, reportMonth);
+  const litres = list.reduce((s, e) => s + (e.litres || 0), 0);
+  const cost   = list.reduce((s, e) => s + (e.cost || 0), 0);
+  const unpaid = list.filter(e => e.paymentStatus !== 'Paid').length;
+  const el = document.getElementById('reportPreview');
+  const btn = document.getElementById('reportBtn');
+  btn.disabled = !list.length;
+  btn.style.opacity = list.length ? '1' : '0.5';
+  el.innerHTML = list.length
+    ? `<strong>${niceMonth(reportMonth)}</strong>: ${list.length} entries · <strong>${litres.toFixed(1)} L</strong> · RWF <strong>${Math.round(cost).toLocaleString()}</strong> · ${unpaid} unpaid/credit`
+    : `No entries for ${niceMonth(reportMonth)}.`;
+}
+
+async function downloadMonthlyReport() {
+  const all  = await Store.getAll();
+  const list = entriesForMonth(all, reportMonth);
+  if (!list.length) { alert('No entries for ' + niceMonth(reportMonth) + '.'); return; }
+
+  const headers = ['Date','Time','Agent','Station','Plate','Driver','Odometer','Litres','Price/L (RWF)','Total (RWF)','Status','Reason','Notes'];
+  const rows = list.map(e => {
+    const dt = new Date(e.entryTime);
+    return [
+      dt.toLocaleDateString('en-GB'),
+      dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      e.agentName || '',
+      e.station === 'merez' ? 'Merez' : 'Rubis',
+      e.busPlate,
+      e.driverName,
+      e.odometer ?? '',
+      e.litres.toFixed(1),
+      e.pricePerLitre || '',
+      e.cost || '',
+      e.paymentStatus,
+      e.reason || '',
+      e.notes || '',
+    ];
+  });
+
+  // Totals row + per-station subtotals at the bottom
+  const sum = (arr, k) => arr.reduce((s, e) => s + (e[k] || 0), 0);
+  const merez = list.filter(e => e.station === 'merez');
+  const rubis = list.filter(e => e.station === 'rubis');
+  const blank = Array(headers.length).fill('');
+  const totalRow = (label, arr) => {
+    const r = blank.slice();
+    r[0] = label; r[7] = sum(arr, 'litres').toFixed(1); r[9] = Math.round(sum(arr, 'cost'));
+    return r;
+  };
+  rows.push(blank, totalRow('MEREZ TOTAL', merez), totalRow('RUBIS TOTAL', rubis), totalRow('MONTH TOTAL', list));
+
+  const csv = '\uFEFF' + [headers, ...rows]
+    .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `excel-travel-fuel-report-${reportMonth}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
