@@ -182,22 +182,28 @@ async function renderMyLog() {
   const tbody   = document.getElementById('myLogBody');
   const counter = document.getElementById('myEntryCount');
 
-  const entries = await Store.getAll();
+  // The server only returns today's entries for agents; this is a second
+  // guard so earlier days never show even if the backend isn't updated yet.
+  const now = new Date();
+  const todayKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  const entries = (await Store.getAll()).filter(e => String(e.entryTime).slice(0, 10) === todayKey);
 
   counter.textContent = entries.length + ' entr' + (entries.length === 1 ? 'y' : 'ies');
 
   if (!entries.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="7">No entries yet today.</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="9">No entries yet today.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = entries.map(e => {
     const dt      = new Date(e.entryTime);
+    const dateStr = dt.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
     const timeStr = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const statusClass = { 'Paid':'status-paid','Pending':'status-pending','Credit':'status-credit' }[e.paymentStatus] || 'status-pending';
     return `
       <tr>
-        <td style="color:#6B7280">${timeStr}</td>
+        <td style="color:#374151;white-space:nowrap">${dateStr}</td>
+        <td style="color:#6B7280;white-space:nowrap">${timeStr}</td>
         <td>
           <span class="station-badge ${e.station === 'merez' ? 'badge-merez' : 'badge-rubis'}">
             ${e.station === 'merez' ? 'Merez' : 'Rubis'}
